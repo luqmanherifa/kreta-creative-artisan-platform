@@ -11,19 +11,23 @@ import (
 
 	"github.com/luqmanherifa/creative-artisan-platform/internal/config"
 	"github.com/luqmanherifa/creative-artisan-platform/internal/database"
+	"github.com/luqmanherifa/creative-artisan-platform/models"
 )
 
 func main() {
 	cfg := config.Load()
 
-	db, err := database.NewPostgres(cfg.DB)
+	db, err := database.NewGorm(cfg.DB)
 	if err != nil {
 		log.Fatalf("failed to connect database: %v", err)
 	}
-	defer db.Close()
+
+	if err := db.AutoMigrate(&models.User{}); err != nil {
+		log.Fatalf("failed to migrate: %v", err)
+	}
+	log.Println("migration completed: users table")
 
 	mux := http.NewServeMux()
-
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
