@@ -1,14 +1,21 @@
-const BASE_URL = "http://localhost:8080";
+const API_URL = "http://localhost:8080";
 
-export const apiFetch = async (url, options = {}) => {
+export async function apiFetch(path, options = {}) {
   const token = localStorage.getItem("token");
-  const headers = {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...options.headers,
-  };
 
-  const res = await fetch(BASE_URL + url, { ...options, headers });
-  if (!res.ok) throw new Error(await res.text());
+  const res = await fetch(API_URL + path, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options.headers,
+    },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "API error");
+  }
+
   return res.json();
-};
+}

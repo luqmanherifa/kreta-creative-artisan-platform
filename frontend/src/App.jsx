@@ -5,5 +5,14 @@ import Dashboard from "./pages/Dashboard";
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(!!localStorage.getItem("token"));
 
-  return loggedIn ? <Dashboard /> : <Login onLogin={() => setLoggedIn(true)} />;
+  const logout = () => {
+    localStorage.removeItem("token");
+    setLoggedIn(false);
+  };
+
+  if (!loggedIn) {
+    return <Login onLogin={() => setLoggedIn(true)} />;
+  }
+
+  return <Dashboard onLogout={logout} />;
 }

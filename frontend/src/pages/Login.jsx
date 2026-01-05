@@ -1,19 +1,24 @@
 import { useState } from "react";
-import { apiFetch } from "../api/api";
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     setError("");
+
     try {
-      const data = await apiFetch("/login", {
+      const res = await fetch("http://localhost:8080/login", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
+
+      if (!res.ok) throw new Error("login failed");
+
+      const data = await res.json();
       localStorage.setItem("token", data.token);
       onLogin();
     } catch (err) {
@@ -22,36 +27,25 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen">
-      <form
-        onSubmit={handleSubmit}
-        className="p-6 bg-white shadow rounded w-80"
-      >
-        <h1 className="text-xl font-bold mb-4">Login</h1>
-        {error && <p className="text-red-500 mb-2">{error}</p>}
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-2 mb-2 border rounded"
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-2 mb-4 border rounded"
-          required
-        />
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white p-2 rounded"
-        >
-          Login
-        </button>
-      </form>
-    </div>
+    <form onSubmit={submit} className="p-6 max-w-sm">
+      <h1 className="text-xl font-bold mb-4">Login</h1>
+      {error && <p className="text-red-500">{error}</p>}
+
+      <input
+        className="border p-2 w-full mb-2"
+        placeholder="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <input
+        type="password"
+        className="border p-2 w-full mb-2"
+        placeholder="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+
+      <button className="border px-4 py-2">Login</button>
+    </form>
   );
 }
