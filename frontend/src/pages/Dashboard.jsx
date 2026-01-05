@@ -174,8 +174,54 @@ export default function Dashboard() {
             path="/creators"
             element={
               <div className="p-6">
-                <Section title="Creators">
-                  <DataTable data={creators} />
+                <Section
+                  title="Creators"
+                  action={
+                    <button
+                      className="border px-3 py-1 text-sm"
+                      onClick={() =>
+                        setModal({ type: "Creator", mode: "create" })
+                      }
+                    >
+                      + Add Creator
+                    </button>
+                  }
+                >
+                  <DataTable
+                    data={creators}
+                    onSelect={(c) =>
+                      setModal({ type: "Creator", mode: "view", data: c })
+                    }
+                    onEdit={(c) =>
+                      setModal({ type: "Creator", mode: "edit", data: c })
+                    }
+                    onDelete={async (c) => {
+                      const creatorId = c.id || c.ID;
+                      if (!creatorId) {
+                        alert("Creator ID tidak ditemukan");
+                        return;
+                      }
+
+                      if (confirm(`Hapus creator?`)) {
+                        try {
+                          await apiFetch(`/creators/delete?id=${creatorId}`, {
+                            method: "DELETE",
+                          });
+
+                          const updatedCreators = await apiFetch("/creators");
+                          setCreators(updatedCreators);
+
+                          alert("Creator berhasil dihapus");
+                        } catch (error) {
+                          console.error("Error deleting creator:", error);
+                          alert(
+                            "Gagal menghapus creator: " +
+                              (error.message || "Unknown error")
+                          );
+                        }
+                      }
+                    }}
+                  />
                 </Section>
               </div>
             }
