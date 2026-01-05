@@ -31,8 +31,8 @@ func main() {
 	}
 
 	// Handlers
-	userHandler := handlers.NewUserHandler(db)
 	authHandler := handlers.NewAuthHandler(db)
+	userHandler := handlers.NewUserHandler(db)
 	creatorHandler := handlers.NewCreatorHandler(db)
 	artworkHandler := handlers.NewArtworkHandler(db)
 	requestHandler := handlers.NewClientRequestHandler(db)
@@ -59,6 +59,7 @@ func main() {
 	gracefulShutdown(server)
 }
 
+// Migration
 func migrate(db *gorm.DB) error {
 	if err := db.AutoMigrate(
 		&models.User{},
@@ -69,20 +70,22 @@ func migrate(db *gorm.DB) error {
 		return err
 	}
 
-	log.Println("migration completed: users, creators, artworks, client_requests")
+	log.Println("migration completed")
 	return nil
 }
 
+// Public Routes
 func registerPublicRoutes(mux *http.ServeMux, auth *handlers.AuthHandler) {
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
 
-	mux.HandleFunc("/login", auth.Login)
 	mux.HandleFunc("/register", auth.Register)
+	mux.HandleFunc("/login", auth.Login)
 }
 
+// Protected Routes (JWT + Role)
 func registerProtectedRoutes(
 	mux *http.ServeMux,
 	user *handlers.UserHandler,
@@ -90,6 +93,7 @@ func registerProtectedRoutes(
 	artwork *handlers.ArtworkHandler,
 	request *handlers.ClientRequestHandler,
 ) {
+	// Users (Admin)
 	mux.Handle("/users", middleware.AuthMiddleware(
 		methodHandler(map[string]http.HandlerFunc{
 			http.MethodGet:  user.ListUsers,
@@ -98,13 +102,23 @@ func registerProtectedRoutes(
 		[]string{"admin"},
 	))
 
-	mux.Handle("/user", middleware.AuthMiddleware(
-		methodHandler(map[string]http.HandlerFunc{
-			http.MethodGet: user.GetUser,
-		}),
+	mux.Handle("/users/update", middleware.AuthMiddleware(
+		http.HandlerFunc(user.UpdateUser),
+		[]string{"admin"},
+	))
+
+	mux.Handle("/users/delete", middleware.AuthMiddleware(
+		http.HandlerFunc(user.DeleteUser),
+		[]string{"admin"},
+	))
+
+	// Current User
+	mux.Handle("/me", middleware.AuthMiddleware(
+		http.HandlerFunc(user.GetMe),
 		[]string{"admin", "creator", "client"},
 	))
 
+	// Creators
 	mux.Handle("/creators", middleware.AuthMiddleware(
 		methodHandler(map[string]http.HandlerFunc{
 			http.MethodGet:  creator.ListCreators,
@@ -118,6 +132,7 @@ func registerProtectedRoutes(
 		[]string{"admin", "creator", "client"},
 	))
 
+	// Artworks
 	mux.Handle("/artworks", middleware.AuthMiddleware(
 		methodHandler(map[string]http.HandlerFunc{
 			http.MethodGet:  artwork.ListArtworks,
@@ -131,6 +146,7 @@ func registerProtectedRoutes(
 		[]string{"admin", "creator", "client"},
 	))
 
+	// Requests
 	mux.Handle("/requests", middleware.AuthMiddleware(
 		methodHandler(map[string]http.HandlerFunc{
 			http.MethodGet:  request.ListRequests,
@@ -150,6 +166,7 @@ func registerProtectedRoutes(
 	))
 }
 
+// Method Switcher
 func methodHandler(handlers map[string]http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if h, ok := handlers[r.Method]; ok {
@@ -160,6 +177,7 @@ func methodHandler(handlers map[string]http.HandlerFunc) http.Handler {
 	})
 }
 
+// Server Start and Shutdown
 func startServer(server *http.Server, cfg *config.Config) {
 	go func() {
 		log.Printf("%s running on :%s", cfg.AppName, cfg.Port)

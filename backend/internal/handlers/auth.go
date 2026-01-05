@@ -24,14 +24,7 @@ func NewAuthHandler(db *gorm.DB) *AuthHandler {
 	}
 }
 
-/*
-|--------------------------------------------------------------------------
-| REGISTER (PUBLIC)
-|--------------------------------------------------------------------------
-| - Default role: client
-| - User cannot set role manually
-| - Password hashed
-*/
+// Register Public)
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Username string `json:"username"`
@@ -64,13 +57,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
-/*
-|--------------------------------------------------------------------------
-| LOGIN (PUBLIC)
-|--------------------------------------------------------------------------
-| - Validate credentials
-| - Return JWT
-*/
+// Login (Public)
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Email    string `json:"email"`
