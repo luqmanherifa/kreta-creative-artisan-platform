@@ -14,143 +14,164 @@ import (
 	"github.com/luqmanherifa/creative-artisan-platform/internal/handlers"
 	"github.com/luqmanherifa/creative-artisan-platform/internal/middleware"
 	"github.com/luqmanherifa/creative-artisan-platform/models"
+	"gorm.io/gorm"
 )
 
 func main() {
+	// Load configuration
 	cfg := config.Load()
 
+	// Database
 	db, err := database.NewGorm(cfg.DB)
 	if err != nil {
-		log.Fatalf("failed to connect database: %v", err)
+		log.Fatalf("database connection failed: %v", err)
 	}
 
-	if err := db.AutoMigrate(&models.User{}, &models.Creator{}, &models.Artwork{}); err != nil {
-		log.Fatalf("failed to migrate: %v", err)
+	if err := migrate(db); err != nil {
+		log.Fatalf("migration failed: %v", err)
 	}
-	log.Println("migration completed: users, creators, artworks")
 
-	if err := db.AutoMigrate(&models.ClientRequest{}); err != nil {
-		log.Fatalf("failed to migrate client requests: %v", err)
-	}
-	log.Println("migration completed: client requests")
-
+	// Handlers
 	userHandler := handlers.NewUserHandler(db)
 	authHandler := handlers.NewAuthHandler(db)
 	creatorHandler := handlers.NewCreatorHandler(db)
 	artworkHandler := handlers.NewArtworkHandler(db)
-
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	})
-
-	mux.HandleFunc("/login", authHandler.Login)
-
-	mux.Handle("/users", middleware.AuthMiddleware(
-			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					switch r.Method {
-					case http.MethodGet:
-							userHandler.ListUsers(w, r)
-					case http.MethodPost:
-							userHandler.CreateUser(w, r)
-					default:
-							http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-					}
-			}),
-			[]string{"admin"},
-	))
-
-	mux.Handle("/user", middleware.AuthMiddleware(
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Method != http.MethodGet {
-				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-				return
-			}
-			userHandler.GetUser(w, r)
-		}),
-		[]string{"admin", "creator", "client"},
-	))
-
-	mux.Handle("/creators", middleware.AuthMiddleware(
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			switch r.Method {
-			case http.MethodGet:
-				creatorHandler.ListCreators(w, r)
-			case http.MethodPost:
-				creatorHandler.CreateCreator(w, r)
-			default:
-				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-			}
-		}),
-		[]string{"admin", "creator"},
-	))
-
-	mux.Handle("/creator", middleware.AuthMiddleware(
-		http.HandlerFunc(creatorHandler.GetCreator),
-		[]string{"admin", "creator", "client"},
-	))
-
-	mux.Handle("/artworks", middleware.AuthMiddleware(
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			switch r.Method {
-			case http.MethodGet:
-				artworkHandler.ListArtworks(w, r)
-			case http.MethodPost:
-				artworkHandler.CreateArtwork(w, r)
-			default:
-				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-			}
-		}),
-		[]string{"admin", "creator"},
-	))
-
-	mux.Handle("/artwork", middleware.AuthMiddleware(
-		http.HandlerFunc(artworkHandler.GetArtwork),
-		[]string{"admin", "creator", "client"},
-	))
-
 	requestHandler := handlers.NewClientRequestHandler(db)
 
-	mux.Handle("/requests", middleware.AuthMiddleware(
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			switch r.Method {
-			case http.MethodGet:
-				requestHandler.ListRequests(w, r)
-			case http.MethodPost:
-				requestHandler.CreateRequest(w, r)
-			default:
-				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-			}
-		}),
-		[]string{"client", "creator", "admin"},
-	))
+	// Router
+	mux := http.NewServeMux()
 
-	mux.Handle("/request", middleware.AuthMiddleware(
-		http.HandlerFunc(requestHandler.GetRequest),
-		[]string{"client", "creator", "admin"},
-	))
+	registerPublicRoutes(mux, authHandler)
+	registerProtectedRoutes(
+		mux,
+		userHandler,
+		creatorHandler,
+		artworkHandler,
+		requestHandler,
+	)
 
-	mux.Handle("/request/status", middleware.AuthMiddleware(
-		http.HandlerFunc(requestHandler.UpdateStatus),
-		[]string{"creator", "admin"},
-	))
-
+	// HTTP Server
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
 		Handler: middleware.CORSMiddleware(mux),
 	}
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	startServer(server, cfg)
+	gracefulShutdown(server)
+}
 
+func migrate(db *gorm.DB) error {
+	if err := db.AutoMigrate(
+		&models.User{},
+		&models.Creator{},
+		&models.Artwork{},
+		&models.ClientRequest{},
+	); err != nil {
+		return err
+	}
+
+	log.Println("migration completed: users, creators, artworks, client_requests")
+	return nil
+}
+
+func registerPublicRoutes(mux *http.ServeMux, auth *handlers.AuthHandler) {
+	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
+
+	mux.HandleFunc("/login", auth.Login)
+}
+
+func registerProtectedRoutes(
+	mux *http.ServeMux,
+	user *handlers.UserHandler,
+	creator *handlers.CreatorHandler,
+	artwork *handlers.ArtworkHandler,
+	request *handlers.ClientRequestHandler,
+) {
+	mux.Handle("/users", middleware.AuthMiddleware(
+		methodHandler(map[string]http.HandlerFunc{
+			http.MethodGet:  user.ListUsers,
+			http.MethodPost: user.CreateUser,
+		}),
+		[]string{"admin"},
+	))
+
+	mux.Handle("/user", middleware.AuthMiddleware(
+		methodHandler(map[string]http.HandlerFunc{
+			http.MethodGet: user.GetUser,
+		}),
+		[]string{"admin", "creator", "client"},
+	))
+
+	mux.Handle("/creators", middleware.AuthMiddleware(
+		methodHandler(map[string]http.HandlerFunc{
+			http.MethodGet:  creator.ListCreators,
+			http.MethodPost: creator.CreateCreator,
+		}),
+		[]string{"admin", "creator"},
+	))
+
+	mux.Handle("/creator", middleware.AuthMiddleware(
+		http.HandlerFunc(creator.GetCreator),
+		[]string{"admin", "creator", "client"},
+	))
+
+	mux.Handle("/artworks", middleware.AuthMiddleware(
+		methodHandler(map[string]http.HandlerFunc{
+			http.MethodGet:  artwork.ListArtworks,
+			http.MethodPost: artwork.CreateArtwork,
+		}),
+		[]string{"admin", "creator"},
+	))
+
+	mux.Handle("/artwork", middleware.AuthMiddleware(
+		http.HandlerFunc(artwork.GetArtwork),
+		[]string{"admin", "creator", "client"},
+	))
+
+	mux.Handle("/requests", middleware.AuthMiddleware(
+		methodHandler(map[string]http.HandlerFunc{
+			http.MethodGet:  request.ListRequests,
+			http.MethodPost: request.CreateRequest,
+		}),
+		[]string{"client", "creator", "admin"},
+	))
+
+	mux.Handle("/request", middleware.AuthMiddleware(
+		http.HandlerFunc(request.GetRequest),
+		[]string{"client", "creator", "admin"},
+	))
+
+	mux.Handle("/request/status", middleware.AuthMiddleware(
+		http.HandlerFunc(request.UpdateStatus),
+		[]string{"creator", "admin"},
+	))
+}
+
+func methodHandler(handlers map[string]http.HandlerFunc) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if h, ok := handlers[r.Method]; ok {
+			h(w, r)
+			return
+		}
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	})
+}
+
+func startServer(server *http.Server, cfg *config.Config) {
 	go func() {
 		log.Printf("%s running on :%s", cfg.AppName, cfg.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server error: %v", err)
 		}
 	}()
+}
+
+func gracefulShutdown(server *http.Server) {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	<-quit
 	log.Println("shutting down server...")
@@ -159,7 +180,7 @@ func main() {
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Printf("server forced to shutdown: %v", err)
+		log.Printf("forced shutdown: %v", err)
 	}
 
 	log.Println("server exited properly")

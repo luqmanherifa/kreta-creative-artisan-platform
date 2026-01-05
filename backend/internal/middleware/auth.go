@@ -12,13 +12,10 @@ import (
 
 type contextKey string
 
-const UserContextKey = contextKey("user")
-
-type JWTClaims struct {
-	UserID uint
-	Role   string
-	jwt.RegisteredClaims
-}
+const (
+	UserIDContextKey contextKey = "userID"
+	RoleContextKey   contextKey = "role"
+)
 
 func AuthMiddleware(next http.Handler, rolesAllowed []string) http.Handler {
 	secret := []byte(os.Getenv("JWT_SECRET"))
@@ -34,7 +31,7 @@ func AuthMiddleware(next http.Handler, rolesAllowed []string) http.Handler {
 
 		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+				return nil, fmt.Errorf("unexpected signing method")
 			}
 			return secret, nil
 		})
@@ -44,23 +41,10 @@ func AuthMiddleware(next http.Handler, rolesAllowed []string) http.Handler {
 			return
 		}
 
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			http.Error(w, "invalid token claims", http.StatusUnauthorized)
-			return
-		}
+		claims := token.Claims.(jwt.MapClaims)
 
-		role, ok := claims["role"].(string)
-		if !ok {
-			http.Error(w, "invalid role claim", http.StatusUnauthorized)
-			return
-		}
-
-		userIDFloat, ok := claims["user_id"].(float64)
-		if !ok {
-			http.Error(w, "invalid user_id claim", http.StatusUnauthorized)
-			return
-		}
+		role := claims["role"].(string)
+		userID := uint(claims["user_id"].(float64))
 
 		allowed := false
 		for _, r := range rolesAllowed {
@@ -69,16 +53,14 @@ func AuthMiddleware(next http.Handler, rolesAllowed []string) http.Handler {
 				break
 			}
 		}
-
 		if !allowed {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), UserContextKey, map[string]interface{}{
-			"user_id": uint(userIDFloat),
-			"role":    role,
-		})
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, UserIDContextKey, userID)
+		ctx = context.WithValue(ctx, RoleContextKey, role)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

@@ -3,8 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
+	"github.com/luqmanherifa/creative-artisan-platform/internal/middleware"
 	"github.com/luqmanherifa/creative-artisan-platform/models"
 	"gorm.io/gorm"
 )
@@ -51,16 +51,15 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
-	id, _ := strconv.Atoi(idStr)
+	userID, ok := r.Context().Value(middleware.UserIDContextKey).(uint)
+	if !ok || userID == 0 {
+		http.Error(w, "invalid user context", http.StatusUnauthorized)
+		return
+	}
 
 	var user models.User
-	if err := h.DB.First(&user, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			http.Error(w, "user not found", http.StatusNotFound)
-			return
-		}
-		http.Error(w, "db error", http.StatusInternalServerError)
+	if err := h.DB.First(&user, userID).Error; err != nil {
+		http.Error(w, "user not found", http.StatusNotFound)
 		return
 	}
 
