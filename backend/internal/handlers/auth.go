@@ -18,9 +18,59 @@ type AuthHandler struct {
 
 func NewAuthHandler(db *gorm.DB) *AuthHandler {
 	secret := []byte(os.Getenv("JWT_SECRET"))
-	return &AuthHandler{DB: db, JWTSecret: secret}
+	return &AuthHandler{
+		DB:        db,
+		JWTSecret: secret,
+	}
 }
 
+/*
+|--------------------------------------------------------------------------
+| REGISTER (PUBLIC)
+|--------------------------------------------------------------------------
+| - Default role: client
+| - User cannot set role manually
+| - Password hashed
+*/
+func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Username string `json:"username"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "invalid input", http.StatusBadRequest)
+		return
+	}
+
+	user := models.User{
+		Username: input.Username,
+		Email:    input.Email,
+		Role:     "client", 
+	}
+
+	if err := user.SetPassword(input.Password); err != nil {
+		http.Error(w, "failed to hash password", http.StatusInternalServerError)
+		return
+	}
+
+	if err := h.DB.Create(&user).Error; err != nil {
+		http.Error(w, "email or username already exists", http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(user)
+}
+
+/*
+|--------------------------------------------------------------------------
+| LOGIN (PUBLIC)
+|--------------------------------------------------------------------------
+| - Validate credentials
+| - Return JWT
+*/
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Email    string `json:"email"`

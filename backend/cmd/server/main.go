@@ -80,6 +80,7 @@ func registerPublicRoutes(mux *http.ServeMux, auth *handlers.AuthHandler) {
 	})
 
 	mux.HandleFunc("/login", auth.Login)
+	mux.HandleFunc("/register", auth.Register)
 }
 
 func registerProtectedRoutes(
