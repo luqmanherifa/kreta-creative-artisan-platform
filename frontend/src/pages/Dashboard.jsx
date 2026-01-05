@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, Routes, Route } from "react-router-dom";
 import { apiFetch } from "../api/api";
 import Section from "../components/Section";
 import DataTable from "../components/DataTable";
@@ -18,9 +18,21 @@ function getRoleFromToken() {
   }
 }
 
+function Welcome() {
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Welcome to Dashboard</h1>
+      <p className="text-gray-600">
+        Select a menu from the sidebar to get started.
+      </p>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const role = getRoleFromToken();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const menus = [
     { key: "users", label: "Users", roles: ["admin"] },
@@ -34,10 +46,6 @@ export default function Dashboard() {
   ];
 
   const allowedMenus = menus.filter((m) => m.roles.includes(role));
-
-  const [activeMenu, setActiveMenu] = useState(
-    allowedMenus.length > 0 ? allowedMenus[0].key : ""
-  );
 
   const [modal, setModal] = useState(null);
   const [users, setUsers] = useState([]);
@@ -68,21 +76,12 @@ export default function Dashboard() {
     navigate("/login", { replace: true });
   };
 
-  const refreshData = async (key) => {
-    switch (key) {
-      case "users":
-        setUsers(await apiFetch("/users"));
-        break;
-      case "creators":
-        setCreators(await apiFetch("/creators"));
-        break;
-      case "artworks":
-        setArtworks(await apiFetch("/artworks"));
-        break;
-      case "requests":
-        setRequests(await apiFetch("/requests"));
-        break;
-    }
+  const handleMenuClick = (menuKey) => {
+    navigate(`/dashboard/${menuKey}`);
+  };
+
+  const isMenuActive = (menuKey) => {
+    return location.pathname === `/dashboard/${menuKey}`;
   };
 
   return (
@@ -94,9 +93,9 @@ export default function Dashboard() {
         {allowedMenus.map((menu) => (
           <button
             key={menu.key}
-            onClick={() => setActiveMenu(menu.key)}
+            onClick={() => handleMenuClick(menu.key)}
             className={`block w-full text-left px-2 py-1 text-sm border ${
-              activeMenu === menu.key ? "bg-gray-200" : ""
+              isMenuActive(menu.key) ? "bg-gray-200" : ""
             }`}
           >
             {menu.label}
@@ -112,45 +111,69 @@ export default function Dashboard() {
       </aside>
 
       {/* Content */}
-      <main className="flex-1 p-6 space-y-6">
-        {activeMenu === "users" && (
-          <Section
-            title="Users"
-            action={
-              <button
-                className="border px-3 py-1 text-sm"
-                onClick={() => setModal({ type: "User", mode: "create" })}
-              >
-                + Add User
-              </button>
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<Welcome />} />
+
+          <Route
+            path="/users"
+            element={
+              <div className="p-6">
+                <Section
+                  title="Users"
+                  action={
+                    <button
+                      className="border px-3 py-1 text-sm"
+                      onClick={() => setModal({ type: "User", mode: "create" })}
+                    >
+                      + Add User
+                    </button>
+                  }
+                >
+                  <DataTable
+                    data={users}
+                    onSelect={(u) =>
+                      setModal({ type: "User", mode: "edit", data: u })
+                    }
+                  />
+                </Section>
+              </div>
             }
-          >
-            <DataTable
-              data={users}
-              onSelect={(u) =>
-                setModal({ type: "User", mode: "edit", data: u })
-              }
-            />
-          </Section>
-        )}
+          />
 
-        {activeMenu === "creators" && (
-          <Section title="Creators">
-            <DataTable data={creators} />
-          </Section>
-        )}
+          <Route
+            path="/creators"
+            element={
+              <div className="p-6">
+                <Section title="Creators">
+                  <DataTable data={creators} />
+                </Section>
+              </div>
+            }
+          />
 
-        {activeMenu === "artworks" && (
-          <Section title="Artworks">
-            <DataTable data={artworks} />
-          </Section>
-        )}
+          <Route
+            path="/artworks"
+            element={
+              <div className="p-6">
+                <Section title="Artworks">
+                  <DataTable data={artworks} />
+                </Section>
+              </div>
+            }
+          />
 
-        {activeMenu === "requests" && (
-          <Section title="Requests">
-            <DataTable data={requests} />
-          </Section>
-        )}
+          <Route
+            path="/requests"
+            element={
+              <div className="p-6">
+                <Section title="Requests">
+                  <DataTable data={requests} />
+                </Section>
+              </div>
+            }
+          />
+        </Routes>
       </main>
 
       <DataModal
