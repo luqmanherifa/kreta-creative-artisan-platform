@@ -71,3 +71,60 @@ func (h *ArtworkHandler) GetArtwork(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(artwork)
 }
+
+func (h *ArtworkHandler) UpdateArtwork(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	var artwork models.Artwork
+	if err := h.DB.First(&artwork, id).Error; err != nil {
+		http.Error(w, "artwork not found", http.StatusNotFound)
+		return
+	}
+
+	var input struct {
+		CreatorID   uint   `json:"creator_id"`
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		MediaURL    string `json:"media_url"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "invalid input", http.StatusBadRequest)
+		return
+	}
+
+	artwork.CreatorID = input.CreatorID
+	artwork.Title = input.Title
+	artwork.Description = input.Description
+	artwork.MediaURL = input.MediaURL
+
+	if err := h.DB.Save(&artwork).Error; err != nil {
+		http.Error(w, "update failed", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(artwork)
+}
+
+func (h *ArtworkHandler) DeleteArtwork(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.DB.Unscoped().Delete(&models.Artwork{}, id).Error; err != nil {
+		http.Error(w, "failed to delete artwork", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "artwork deleted",
+	})
+}

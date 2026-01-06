@@ -156,6 +156,16 @@ func registerProtectedRoutes(
 		[]string{"admin", "creator", "client"},
 	))
 
+	mux.Handle("/artworks/update", middleware.AuthMiddleware(
+		http.HandlerFunc(artwork.UpdateArtwork),
+		[]string{"admin"},
+	))
+
+	mux.Handle("/artworks/delete", middleware.AuthMiddleware(
+		http.HandlerFunc(artwork.DeleteArtwork),
+		[]string{"admin"},
+	))
+
 	// Requests
 	mux.Handle("/requests", middleware.AuthMiddleware(
 		methodHandler(map[string]http.HandlerFunc{
