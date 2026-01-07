@@ -7,11 +7,11 @@ import (
 )
 
 type Creator struct {
-	ID        uint           `gorm:"primaryKey"`
-	UserID    uint           `gorm:"uniqueIndex;not null"`
-	Bio       string         `gorm:"type:text"`
-	Website   string         `gorm:"size:255"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	UserID    uint           `gorm:"uniqueIndex;not null" json:"user_id"`
+	Bio       string         `gorm:"type:text" json:"bio"`
+	Website   string         `gorm:"size:255" json:"website"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
 }
