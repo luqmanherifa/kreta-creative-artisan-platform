@@ -93,7 +93,7 @@ func registerProtectedRoutes(
 	artwork *handlers.ArtworkHandler,
 	request *handlers.ClientRequestHandler,
 ) {
-	// Users (Admin)
+	// Users
 	mux.Handle("/users", middleware.AuthMiddleware(
 		methodHandler(map[string]http.HandlerFunc{
 			http.MethodGet:  user.ListUsers,
@@ -178,6 +178,16 @@ func registerProtectedRoutes(
 	mux.Handle("/request", middleware.AuthMiddleware(
 		http.HandlerFunc(request.GetRequest),
 		[]string{"client", "creator", "admin"},
+	))
+
+	mux.Handle("/requests/update", middleware.AuthMiddleware(
+		http.HandlerFunc(request.UpdateRequest),
+		[]string{"admin"},
+	))
+
+	mux.Handle("/requests/delete", middleware.AuthMiddleware(
+		http.HandlerFunc(request.DeleteRequest),
+		[]string{"admin"},
 	))
 
 	mux.Handle("/request/status", middleware.AuthMiddleware(

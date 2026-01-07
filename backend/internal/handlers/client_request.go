@@ -35,6 +35,7 @@ func (h *ClientRequestHandler) CreateRequest(w http.ResponseWriter, r *http.Requ
 		CreatorID: input.CreatorID,
 		Title:     input.Title,
 		Details:   input.Details,
+		Status:    "pending",
 	}
 
 	if err := h.DB.Create(&req).Error; err != nil {
@@ -72,6 +73,47 @@ func (h *ClientRequestHandler) GetRequest(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(req)
 }
 
+func (h *ClientRequestHandler) UpdateRequest(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	var req models.ClientRequest
+	if err := h.DB.First(&req, id).Error; err != nil {
+		http.Error(w, "request not found", http.StatusNotFound)
+		return
+	}
+
+	var input struct {
+		ClientID  uint   `json:"client_id"`
+		CreatorID uint   `json:"creator_id"`
+		Title     string `json:"title"`
+		Details   string `json:"details"`
+		Status    string `json:"status"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "invalid input", http.StatusBadRequest)
+		return
+	}
+
+	req.ClientID = input.ClientID
+	req.CreatorID = input.CreatorID
+	req.Title = input.Title
+	req.Details = input.Details
+	req.Status = input.Status
+
+	if err := h.DB.Save(&req).Error; err != nil {
+		http.Error(w, "update failed", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(req)
+}
+
 func (h *ClientRequestHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		ID     uint   `json:"id"`
@@ -96,4 +138,22 @@ func (h *ClientRequestHandler) UpdateStatus(w http.ResponseWriter, r *http.Reque
 	}
 
 	json.NewEncoder(w).Encode(req)
+}
+
+func (h *ClientRequestHandler) DeleteRequest(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.DB.Unscoped().Delete(&models.ClientRequest{}, id).Error; err != nil {
+		http.Error(w, "failed to delete request", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "request deleted",
+	})
 }
