@@ -303,8 +303,54 @@ export default function Dashboard() {
             path="/requests"
             element={
               <div className="p-6">
-                <Section title="Requests">
-                  <DataTable data={requests} />
+                <Section
+                  title="Requests"
+                  action={
+                    <button
+                      className="border px-3 py-1 text-sm"
+                      onClick={() =>
+                        setModal({ type: "Request", mode: "create" })
+                      }
+                    >
+                      + Add Request
+                    </button>
+                  }
+                >
+                  <DataTable
+                    data={requests}
+                    onSelect={(req) =>
+                      setModal({ type: "Request", mode: "view", data: req })
+                    }
+                    onEdit={(req) =>
+                      setModal({ type: "Request", mode: "edit", data: req })
+                    }
+                    onDelete={async (req) => {
+                      const requestId = req.id || req.ID;
+                      if (!requestId) {
+                        alert("Request ID tidak ditemukan");
+                        return;
+                      }
+
+                      if (confirm(`Hapus request "${req.title}"?`)) {
+                        try {
+                          await apiFetch(`/requests/delete?id=${requestId}`, {
+                            method: "DELETE",
+                          });
+
+                          const updatedRequests = await apiFetch("/requests");
+                          setRequests(updatedRequests);
+
+                          alert("Request berhasil dihapus");
+                        } catch (error) {
+                          console.error("Error deleting request:", error);
+                          alert(
+                            "Gagal menghapus request: " +
+                              (error.message || "Unknown error")
+                          );
+                        }
+                      }
+                    }}
+                  />
                 </Section>
               </div>
             }
@@ -327,6 +373,9 @@ export default function Dashboard() {
           } else if (modal?.type === "Artwork") {
             const updatedArtworks = await apiFetch("/artworks");
             setArtworks(updatedArtworks);
+          } else if (modal?.type === "Request") {
+            const updatedRequests = await apiFetch("/requests");
+            setRequests(updatedRequests);
           }
         }}
       />

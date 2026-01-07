@@ -5,6 +5,7 @@ export default function DataModal({ title, mode, data, onClose, onSuccess }) {
   const isUser = title === "User";
   const isCreator = title === "Creator";
   const isArtwork = title === "Artwork";
+  const isRequest = title === "Request";
 
   const [form, setForm] = useState({
     username: "",
@@ -18,6 +19,11 @@ export default function DataModal({ title, mode, data, onClose, onSuccess }) {
     title: "",
     description: "",
     media_url: "",
+    client_id: "",
+    request_creator_id: "",
+    request_title: "",
+    details: "",
+    status: "pending",
   });
 
   const [users, setUsers] = useState([]);
@@ -28,8 +34,12 @@ export default function DataModal({ title, mode, data, onClose, onSuccess }) {
       apiFetch("/users").then(setUsers).catch(console.error);
     }
 
-    if (isArtwork) {
+    if (isArtwork || isRequest) {
       apiFetch("/creators").then(setCreators).catch(console.error);
+    }
+
+    if (isRequest) {
+      apiFetch("/users").then(setUsers).catch(console.error);
     }
 
     if ((mode === "edit" || mode === "view") && data) {
@@ -46,6 +56,11 @@ export default function DataModal({ title, mode, data, onClose, onSuccess }) {
           title: "",
           description: "",
           media_url: "",
+          client_id: "",
+          request_creator_id: "",
+          request_title: "",
+          details: "",
+          status: "pending",
         });
       } else if (isCreator) {
         setForm({
@@ -60,6 +75,11 @@ export default function DataModal({ title, mode, data, onClose, onSuccess }) {
           title: "",
           description: "",
           media_url: "",
+          client_id: "",
+          request_creator_id: "",
+          request_title: "",
+          details: "",
+          status: "pending",
         });
       } else if (isArtwork) {
         setForm({
@@ -74,6 +94,30 @@ export default function DataModal({ title, mode, data, onClose, onSuccess }) {
           user_id: "",
           bio: "",
           website: "",
+          client_id: "",
+          request_creator_id: "",
+          request_title: "",
+          details: "",
+          status: "pending",
+        });
+      } else if (isRequest) {
+        setForm({
+          client_id: String(data.client_id || ""),
+          request_creator_id: String(data.creator_id || ""),
+          request_title: data.title || "",
+          details: data.details || "",
+          status: data.status || "pending",
+          username: "",
+          email: "",
+          password: "",
+          role: "client",
+          user_id: "",
+          bio: "",
+          website: "",
+          creator_id: "",
+          title: "",
+          description: "",
+          media_url: "",
         });
       }
     }
@@ -91,11 +135,16 @@ export default function DataModal({ title, mode, data, onClose, onSuccess }) {
         title: "",
         description: "",
         media_url: "",
+        client_id: "",
+        request_creator_id: "",
+        request_title: "",
+        details: "",
+        status: "pending",
       });
     }
-  }, [mode, data, isUser, isCreator, isArtwork]);
+  }, [mode, data, isUser, isCreator, isArtwork, isRequest]);
 
-  if (!isUser && !isCreator && !isArtwork) return null;
+  if (!isUser && !isCreator && !isArtwork && !isRequest) return null;
 
   const submit = async () => {
     try {
@@ -177,6 +226,32 @@ export default function DataModal({ title, mode, data, onClose, onSuccess }) {
             }),
           });
         }
+      } else if (isRequest) {
+        if (mode === "create") {
+          await apiFetch("/requests", {
+            method: "POST",
+            body: JSON.stringify({
+              client_id: parseInt(form.client_id),
+              creator_id: parseInt(form.request_creator_id),
+              title: form.request_title,
+              details: form.details,
+            }),
+          });
+        }
+
+        if (mode === "edit") {
+          const requestId = data.id || data.ID;
+          await apiFetch(`/requests/update?id=${requestId}`, {
+            method: "PUT",
+            body: JSON.stringify({
+              client_id: parseInt(form.client_id),
+              creator_id: parseInt(form.request_creator_id),
+              title: form.request_title,
+              details: form.details,
+              status: form.status,
+            }),
+          });
+        }
       }
 
       onClose();
@@ -205,6 +280,11 @@ export default function DataModal({ title, mode, data, onClose, onSuccess }) {
         await apiFetch(`/artworks/delete?id=${artworkId}`, {
           method: "DELETE",
         });
+      } else if (isRequest) {
+        const requestId = data.id || data.ID;
+        await apiFetch(`/requests/delete?id=${requestId}`, {
+          method: "DELETE",
+        });
       }
 
       onClose();
@@ -228,6 +308,7 @@ export default function DataModal({ title, mode, data, onClose, onSuccess }) {
       <div className="bg-white p-4 w-96 space-y-3 rounded shadow max-h-[90vh] overflow-y-auto">
         <h2 className="font-bold text-lg">{getTitle()}</h2>
 
+        {/* User Form */}
         {isUser && mode === "view" ? (
           <div className="space-y-3">
             <div>
@@ -303,6 +384,7 @@ export default function DataModal({ title, mode, data, onClose, onSuccess }) {
           </>
         ) : null}
 
+        {/* Creator Form */}
         {isCreator && mode === "view" ? (
           <div className="space-y-3">
             <div>
@@ -371,6 +453,7 @@ export default function DataModal({ title, mode, data, onClose, onSuccess }) {
           </>
         ) : null}
 
+        {/* Artwork Form */}
         {isArtwork && mode === "view" ? (
           <div className="space-y-3">
             <div>
@@ -452,6 +535,115 @@ export default function DataModal({ title, mode, data, onClose, onSuccess }) {
               onChange={(e) => setForm({ ...form, media_url: e.target.value })}
               disabled={isReadOnly}
             />
+          </>
+        ) : null}
+
+        {/* Request Form */}
+        {isRequest && mode === "view" ? (
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-gray-600 block mb-1">ID</label>
+              <p className="border p-2 bg-gray-50">{data?.id || data?.ID}</p>
+            </div>
+            <div>
+              <label className="text-xs text-gray-600 block mb-1">
+                Client ID
+              </label>
+              <p className="border p-2 bg-gray-50">{data?.client_id}</p>
+            </div>
+            <div>
+              <label className="text-xs text-gray-600 block mb-1">
+                Creator ID
+              </label>
+              <p className="border p-2 bg-gray-50">{data?.creator_id}</p>
+            </div>
+            <div>
+              <label className="text-xs text-gray-600 block mb-1">Title</label>
+              <p className="border p-2 bg-gray-50">{form.request_title}</p>
+            </div>
+            <div>
+              <label className="text-xs text-gray-600 block mb-1">
+                Details
+              </label>
+              <p className="border p-2 bg-gray-50">{form.details || "-"}</p>
+            </div>
+            <div>
+              <label className="text-xs text-gray-600 block mb-1">Status</label>
+              <p className="border p-2 bg-gray-50">{form.status}</p>
+            </div>
+            {data?.created_at && (
+              <div>
+                <label className="text-xs text-gray-600 block mb-1">
+                  Created At
+                </label>
+                <p className="border p-2 bg-gray-50">
+                  {new Date(data.created_at).toLocaleString()}
+                </p>
+              </div>
+            )}
+          </div>
+        ) : isRequest ? (
+          <>
+            <select
+              className="border p-2 w-full"
+              value={form.client_id}
+              onChange={(e) => setForm({ ...form, client_id: e.target.value })}
+              disabled={isReadOnly}
+            >
+              <option value="">Select Client (User)</option>
+              {users.map((u) => (
+                <option key={u.id || u.ID} value={u.id || u.ID}>
+                  {u.username} ({u.email})
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="border p-2 w-full"
+              value={form.request_creator_id}
+              onChange={(e) =>
+                setForm({ ...form, request_creator_id: e.target.value })
+              }
+              disabled={isReadOnly}
+            >
+              <option value="">Select Creator</option>
+              {creators.map((c) => (
+                <option key={c.id || c.ID} value={c.id || c.ID}>
+                  Creator #{c.id || c.ID} (User ID: {c.user_id || c.UserID})
+                </option>
+              ))}
+            </select>
+
+            <input
+              className="border p-2 w-full"
+              placeholder="Request Title"
+              value={form.request_title}
+              onChange={(e) =>
+                setForm({ ...form, request_title: e.target.value })
+              }
+              disabled={isReadOnly}
+            />
+
+            <textarea
+              className="border p-2 w-full"
+              placeholder="Details"
+              rows={3}
+              value={form.details}
+              onChange={(e) => setForm({ ...form, details: e.target.value })}
+              disabled={isReadOnly}
+            />
+
+            <select
+              className="border p-2 w-full"
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value })}
+              disabled={isReadOnly}
+            >
+              <option value="pending">Pending</option>
+              <option value="in_progress">In Progress</option>
+              <option value="completed">Completed</option>
+              <option value="rejected">Rejected</option>
+            </select>
           </>
         ) : null}
 
