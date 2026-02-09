@@ -13,6 +13,19 @@ services:
       postgres:
         condition: service_healthy
 
+  seeder:
+    build:
+      context: ./backend
+    container_name: creative_artisan_seeder
+    command: go run cmd/seeder/main.go -fresh
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - seeder
+
   postgres:
     image: postgres:16-alpine
     container_name: creative_artisan_postgres
