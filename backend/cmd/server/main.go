@@ -40,7 +40,7 @@ func main() {
 	// Router
 	mux := http.NewServeMux()
 
-	registerPublicRoutes(mux, authHandler)
+	registerPublicRoutes(mux, authHandler, creatorHandler, artworkHandler)
 	registerProtectedRoutes(
 		mux,
 		userHandler,
@@ -75,7 +75,12 @@ func migrate(db *gorm.DB) error {
 }
 
 // Public Routes
-func registerPublicRoutes(mux *http.ServeMux, auth *handlers.AuthHandler) {
+func registerPublicRoutes(
+	mux *http.ServeMux,
+	auth *handlers.AuthHandler,
+	creator *handlers.CreatorHandler,
+	artwork *handlers.ArtworkHandler,
+) {
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
@@ -83,6 +88,9 @@ func registerPublicRoutes(mux *http.ServeMux, auth *handlers.AuthHandler) {
 
 	mux.HandleFunc("/register", auth.Register)
 	mux.HandleFunc("/login", auth.Login)
+
+	mux.HandleFunc("/public/creators", creator.ListCreators)
+	mux.HandleFunc("/public/artworks", artwork.ListArtworks)
 }
 
 // Protected Routes (JWT + Role)
