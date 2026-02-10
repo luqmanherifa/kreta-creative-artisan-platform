@@ -1,10 +1,9 @@
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import Sidebar from "./Sidebar";
-import DashboardNavbar from "../../components/DashboardNavbar";
+import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import DataModal from "../../components/DataModal/DataModal";
-import { logout } from "../../utils/auth";
 import { useAuthRole } from "../../hooks/useAuthRole";
 import { dashboardRoutes } from "./routes";
 
@@ -28,14 +27,9 @@ export default function Dashboard() {
 
   const openModal = (type, mode, data) => setModal({ type, mode, data });
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login", { replace: true });
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <DashboardNavbar onLogout={handleLogout} />
+      <Navbar />
 
       <div className="flex flex-1">
         <Sidebar
