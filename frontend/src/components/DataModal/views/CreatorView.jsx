@@ -1,22 +1,16 @@
+import { Hash, User, FileText, Globe, Calendar } from "lucide-react";
+import { ViewRow, ViewLink, ViewDate } from "../ViewComponents";
+
 export default function CreatorView({ data }) {
   if (!data) return null;
 
   return (
-    <div className="space-y-2 text-sm">
-      <Row label="ID" value={data.id} />
-      <Row label="User ID" value={data.user_id} />
-      <Row label="Bio" value={data.bio} />
-      <Row label="Website" value={data.website} />
-      <Row label="Created At" value={data.created_at} />
-    </div>
-  );
-}
-
-function Row({ label, value }) {
-  return (
-    <div className="flex">
-      <span className="w-32 text-gray-500">{label}</span>
-      <span>{value || "-"}</span>
+    <div className="space-y-0">
+      <ViewRow label="ID" value={data.id} icon={Hash} />
+      <ViewRow label="User ID" value={data.user_id} icon={User} />
+      <ViewRow label="Bio" value={data.bio} icon={FileText} />
+      <ViewLink label="Website" url={data.website} icon={Globe} />
+      <ViewDate label="Created At" value={data.created_at} icon={Calendar} />
     </div>
   );
 }
