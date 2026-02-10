@@ -44,6 +44,6 @@ func (s *UserSeeder) Seed(db *gorm.DB) error {
 		}
 	}
 
-	log.Printf("✓ Seeded %d users", len(users))
+	log.Printf("Seeded %d users", len(users))
 	return nil
 }

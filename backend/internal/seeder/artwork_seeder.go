@@ -16,7 +16,7 @@ func (s *ArtworkSeeder) Seed(db *gorm.DB) error {
 	}
 
 	if len(creators) == 0 {
-		log.Println("⚠ No creators found, skipping artworks")
+		log.Println("No creators found, skipping artworks")
 		return nil
 	}
 
@@ -40,6 +40,6 @@ func (s *ArtworkSeeder) Seed(db *gorm.DB) error {
 		}
 	}
 
-	log.Printf("✓ Seeded %d artworks", len(artworks))
+	log.Printf("Seeded %d artworks", len(artworks))
 	return nil
 }

@@ -17,7 +17,7 @@ func (s *ClientRequestSeeder) Seed(db *gorm.DB) error {
 	db.Find(&creators)
 
 	if len(clients) == 0 || len(creators) == 0 {
-		log.Println("⚠ No clients or creators found")
+		log.Println("No clients or creators found")
 		return nil
 	}
 
@@ -43,6 +43,6 @@ func (s *ClientRequestSeeder) Seed(db *gorm.DB) error {
 		}
 	}
 
-	log.Printf("✓ Seeded %d client requests", len(requests))
+	log.Printf("Seeded %d client requests", len(requests))
 	return nil
 }

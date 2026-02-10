@@ -24,7 +24,7 @@ func RunAll(db *gorm.DB) error {
 		}
 	}
 
-	log.Println("✓ All seeders completed successfully")
+	log.Println("All seeders completed successfully")
 	return nil
 }
 
@@ -44,6 +44,6 @@ func ClearAll(db *gorm.DB) error {
 		}
 	}
 
-	log.Println("✓ All tables truncated & identity reset")
+	log.Println("All tables truncated & identity reset")
 	return nil
 }

@@ -17,7 +17,7 @@ func (s *CreatorSeeder) Seed(db *gorm.DB) error {
 	}
 
 	if len(users) == 0 {
-		log.Println("⚠ No creator users found")
+		log.Println("No creator users found")
 		return nil
 	}
 
@@ -62,6 +62,6 @@ func (s *CreatorSeeder) Seed(db *gorm.DB) error {
 		}
 	}
 
-	log.Printf("✓ Seeded %d creators", len(users))
+	log.Printf("Seeded %d creators", len(users))
 	return nil
 }
