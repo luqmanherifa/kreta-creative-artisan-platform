@@ -39,7 +39,7 @@ export default function Dashboard() {
         />
 
         <main className="flex-1 overflow-x-hidden">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="px-4 sm:px-6 lg:px-8 py-8">
             <Routes>
               {dashboardRoutes(openModal, refreshKey).map((r) => (
                 <Route key={r.path} {...r} />
