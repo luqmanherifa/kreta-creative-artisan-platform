@@ -4,7 +4,7 @@ export default function Footer() {
       <div className="max-w-6xl mx-auto px-4">
         <div className="grid md:grid-cols-3 gap-8 mb-6">
           <div>
-            <h3 className="text-white font-bold mb-2">CreativeArtisan</h3>
+            <h3 className="text-white font-bold mb-2">Kreta</h3>
             <p className="text-sm text-gray-400">
               Creative marketplace for talented artisans
             </p>
@@ -55,7 +55,7 @@ export default function Footer() {
 
         <div className="border-t border-gray-800 pt-4 text-center">
           <p className="text-sm text-gray-400">
-            © 2024 CreativeArtisan. All rights reserved.
+            © 2024 Kreta. All rights reserved.
           </p>
         </div>
       </div>
