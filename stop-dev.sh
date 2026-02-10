@@ -1,3 +1,4 @@
+# chmod +x stop-dev.sh
 # ./stop-dev.sh
 
 echo "Stopping frontend (Vite)..."

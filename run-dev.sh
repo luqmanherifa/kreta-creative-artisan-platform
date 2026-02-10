@@ -1,3 +1,4 @@
+# chmod +x run-dev.sh
 # ./run-dev.sh
 
 echo "Starting backend (Docker)..."

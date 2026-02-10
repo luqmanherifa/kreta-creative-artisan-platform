@@ -1,11 +1,13 @@
 import { Link, useNavigate } from "react-router-dom";
-import { LogOut, User, LayoutDashboard } from "lucide-react";
+import { LogOut, User, LayoutDashboard, Menu, X } from "lucide-react";
+import { useState } from "react";
 import { useAuthRole } from "../hooks/useAuthRole";
 import { logout } from "../utils/auth";
 
 export default function Navbar() {
   const role = useAuthRole();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const getUsername = () => {
     const token = localStorage.getItem("token");
@@ -20,62 +22,67 @@ export default function Navbar() {
 
   const username = getUsername();
 
-  const getRoleBadgeColor = (role) => {
-    switch (role) {
-      case "admin":
-        return "bg-purple-100 text-purple-700";
-      case "creator":
-        return "bg-blue-100 text-blue-700";
-      case "client":
-        return "bg-green-100 text-green-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
-
   const handleLogout = () => {
     logout();
     navigate("/login", { replace: true });
   };
 
+  const getRoleLabel = (role) => {
+    const roleLabels = {
+      admin: "Administrator",
+      creator: "Artisan",
+      client: "Client",
+    };
+    return roleLabels[role] || role;
+  };
+
   return (
-    <nav className="bg-white border-b">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
-          <Link to="/" className="text-xl font-bold text-blue-600">
-            Kreta
+    <nav className="bg-white border-b border-gray-100 sticky top-0 z-40 font-['Inter']">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          <Link to="/" className="flex items-center space-x-3 group">
+            <img
+              src="/kreta.png"
+              alt="Kreta"
+              className="h-8 w-8 transition-transform group-hover:scale-105"
+            />
+            <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              Kreta
+            </span>
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="hidden md:flex items-center space-x-2">
             {role ? (
               <>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center space-x-3 mr-2">
                   {username && (
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-600" />
-                      <span className="text-sm font-medium text-gray-700">
-                        {username}
-                      </span>
+                    <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
+                      <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-gray-900">
+                          {username}
+                        </span>
+                        <span className="text-xs text-indigo-600 font-medium">
+                          {getRoleLabel(role)}
+                        </span>
+                      </div>
                     </div>
                   )}
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(
-                      role,
-                    )}`}
-                  >
-                    {role}
-                  </span>
-                  <Link
-                    to="/dashboard"
-                    className="flex items-center gap-1 text-gray-700 hover:text-blue-600 px-3 py-2 rounded hover:bg-gray-50 transition"
-                  >
-                    <LayoutDashboard className="w-4 h-4" />
-                    <span className="text-sm font-medium">Dashboard</span>
-                  </Link>
                 </div>
+
+                <Link
+                  to="/dashboard"
+                  className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all font-medium"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>Dashboard</span>
+                </Link>
+
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2 text-gray-700 hover:text-red-600 px-4 py-2 rounded hover:bg-gray-50 transition"
+                  className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all font-medium"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Logout</span>
@@ -85,20 +92,94 @@ export default function Navbar() {
               <>
                 <Link
                   to="/login"
-                  className="text-gray-700 hover:text-blue-600 px-4 py-2"
+                  className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all font-medium"
                 >
                   Login
                 </Link>
+
                 <Link
                   to="/register"
-                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                  className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-800 transition-all font-semibold"
                 >
-                  Sign Up
+                  Join as Artisan
                 </Link>
               </>
             )}
           </div>
+
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+          >
+            {mobileMenuOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
+          </button>
         </div>
+
+        {mobileMenuOpen && (
+          <div className="md:hidden py-4 border-t border-gray-100">
+            {role ? (
+              <div className="space-y-2">
+                {username && (
+                  <div className="flex items-center space-x-3 px-3 py-3 bg-gray-50 rounded-lg mb-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <User className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-gray-900">
+                        {username}
+                      </span>
+                      <span className="text-xs text-indigo-600 font-medium">
+                        {getRoleLabel(role)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <Link
+                  to="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all font-medium"
+                >
+                  <LayoutDashboard className="w-5 h-5" />
+                  <span>Dashboard</span>
+                </Link>
+
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center space-x-3 px-4 py-3 text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all font-medium"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block px-4 py-3 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all font-medium text-center"
+                >
+                  Login
+                </Link>
+
+                <Link
+                  to="/register"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block px-4 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-800 transition-all font-semibold text-center"
+                >
+                  Join as Artisan
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </nav>
   );
