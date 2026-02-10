@@ -1,34 +1,41 @@
+import PrimaryButton from "../../../components/Button/PrimaryButton";
 import Section from "../../../components/Section";
 import DataTable from "../../../components/DataTable";
 import { useCrud } from "../../../hooks/useCrud";
+import { Palette } from "lucide-react";
 
 export default function CreatorsSection({ openModal, refreshKey }) {
   const { data: creators, remove } = useCrud("/creators", [refreshKey]);
 
+  const handleDelete = (creator) => {
+    const id = creator.id || creator.ID;
+    if (!id) {
+      alert("Artisan ID not found");
+      return;
+    }
+
+    const name = creator.username || creator.name || `ID ${id}`;
+    if (confirm(`Delete artisan "${name}"? This action cannot be undone.`)) {
+      remove(id);
+    }
+  };
+
   return (
     <Section
-      title="Creators"
+      title="Artisans Management"
+      subtitle="Manage creative talents and their portfolios"
       action={
-        <button
-          className="border px-3 py-1 text-sm"
-          onClick={() => openModal("Creator", "create")}
-        >
-          + Add Creator
-        </button>
+        <PrimaryButton onClick={() => openModal("Creator", "create")}>
+          Add Artisan
+        </PrimaryButton>
       }
     >
       <DataTable
         data={creators}
         onSelect={(c) => openModal("Creator", "view", c)}
         onEdit={(c) => openModal("Creator", "edit", c)}
-        onDelete={(c) => {
-          const id = c.id || c.ID;
-          if (!id) return alert("Creator ID tidak ditemukan");
-
-          if (confirm(`Hapus creator "${c.username || c.id}"?`)) {
-            remove(id);
-          }
-        }}
+        onDelete={handleDelete}
+        emptyMessage="No artisans found. Add talented creators to showcase their work."
       />
     </Section>
   );
